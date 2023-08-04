@@ -57,6 +57,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <opencv2/opencv.hpp>
+// #include <opencv2/gpu/gpu.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <image_transport/image_transport.h>
@@ -227,6 +228,11 @@ class TagDetector
       const std::vector<cv::Point2d >& imagePoints,
       double fx, double fy, double cx, double cy) const;
   
+  Eigen::Isometry3d getRelativeTransform(
+    const std::vector<cv::Point3d >& objectPoints,
+    const std::vector<cv::Point2d >& imagePoints,
+    double fx, double fy, double cx, double cy, const cv::Mat1d distCoeffs) const;
+
   void addImagePoints(apriltag_detection_t *detection,
                       std::vector<cv::Point2d >& imagePoints) const;
   void addObjectPoints(double s, cv::Matx44d T_oi,

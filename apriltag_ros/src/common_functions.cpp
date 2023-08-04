@@ -222,20 +222,29 @@ AprilTagDetectionArray TagDetector::detectTags (
   {
     cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
   }
+
+  image_geometry::PinholeCameraModel camera_model;
+  camera_model.fromCameraInfo(camera_info);
+  // cv::Mat rect;
+  camera_model.rectifyImage(gray_image, gray_image, 1);
+
+
   image_u8_t apriltag_image = { .width = gray_image.cols,
                                   .height = gray_image.rows,
                                   .stride = gray_image.cols,
                                   .buf = gray_image.data
   };
 
-  image_geometry::PinholeCameraModel camera_model;
-  camera_model.fromCameraInfo(camera_info);
+  cv::Mat1d distCoeff = camera_model.distortionCoeffs();
 
   // Get camera intrinsic properties for rectified image.
   double fx = camera_model.fx(); // focal length in camera x-direction [px]
   double fy = camera_model.fy(); // focal length in camera y-direction [px]
   double cx = camera_model.cx(); // optical center x-coordinate [px]
   double cy = camera_model.cy(); // optical center y-coordinate [px]
+
+  // double d0 = camera_model.distortionCoeffs()
+  // camera_model.dist
 
   ROS_INFO_STREAM_ONCE("Camera model: fx = " << fx << ", fy = " << fy << ", cx = " << cx << ", cy = " << cy);
 
@@ -341,6 +350,10 @@ AprilTagDetectionArray TagDetector::detectTags (
     std::vector<cv::Point2d > standaloneTagImagePoints;
     addObjectPoints(tag_size/2, cv::Matx44d::eye(), standaloneTagObjectPoints);
     addImagePoints(detection, standaloneTagImagePoints);
+    // Eigen::Isometry3d transform = getRelativeTransform(standaloneTagObjectPoints,
+    //                                                  standaloneTagImagePoints,
+    //                                                  fx, fy, cx, cy, distCoeff);
+    
     Eigen::Isometry3d transform = getRelativeTransform(standaloneTagObjectPoints,
                                                      standaloneTagImagePoints,
                                                      fx, fy, cx, cy);
@@ -377,6 +390,10 @@ AprilTagDetectionArray TagDetector::detectTags (
       Eigen::Isometry3d transform =
           getRelativeTransform(bundleObjectPoints[bundleName],
                                bundleImagePoints[bundleName], fx, fy, cx, cy);
+      
+      // Eigen::Isometry3d transform =
+      //     getRelativeTransform(bundleObjectPoints[bundleName],
+      //                          bundleImagePoints[bundleName], fx, fy, cx, cy, distCoeff);
       geometry_msgs::PoseWithCovarianceStamped bundle_pose =
           makeTagPose(transform, image->header);
 
@@ -505,6 +522,37 @@ Eigen::Isometry3d TagDetector::getRelativeTransform(
                            0,  fy, cy,
                            0,   0,  1);
   cv::Vec4f distCoeffs(0,0,0,0); // distortion coefficients
+  // TODO Perhaps something like SOLVEPNP_EPNP would be faster? Would
+  // need to first check WHAT is a bottleneck in this code, and only
+  // do this if PnP solution is the bottleneck.
+  cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
+  cv::Matx33d R;
+  cv::Rodrigues(rvec, R);
+
+  // rotation
+  T.linear() << R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2);
+
+  // translation
+  T.translation() = Eigen::Vector3d::Map(reinterpret_cast<const double*>(tvec.data));
+
+  return T;
+}
+
+Eigen::Isometry3d TagDetector::getRelativeTransform(
+    const std::vector<cv::Point3d >& objectPoints,
+    const std::vector<cv::Point2d >& imagePoints,
+    double fx, double fy, double cx, double cy,
+    const cv::Mat1d distCoeffs) const
+{
+  Eigen::Isometry3d T = Eigen::Isometry3d::Identity();  // homogeneous transformation matrix
+
+  // perform Perspective-n-Point camera pose estimation using the
+  // above 3D-2D point correspondences
+  cv::Mat rvec, tvec;
+  cv::Matx33d cameraMatrix(fx,  0, cx,
+                           0,  fy, cy,
+                           0,   0,  1);
+  // cv::Vec4f distCoeffs(d0,d1,d2,d3); // distortion coefficients
   // TODO Perhaps something like SOLVEPNP_EPNP would be faster? Would
   // need to first check WHAT is a bottleneck in this code, and only
   // do this if PnP solution is the bottleneck.
