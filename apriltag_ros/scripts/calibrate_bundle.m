@@ -48,7 +48,7 @@
 %% User inputs
 
 % Relative directory of calibration bagfile
-calibration_file = 'data/calibration.bag';
+calibration_file = 'data/tag_calib_2023-08-04-16-46-24.bag';
 
 % Bundle name
 bundle_name = 'my_bundle';
