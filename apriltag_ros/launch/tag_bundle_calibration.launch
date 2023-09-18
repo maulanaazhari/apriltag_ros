@@ -1,6 +1,6 @@
 <launch>    
     <arg name="tag_detection_topic" default="/tag_detections"/>
-    <arg name="max_detections" default="500"/>
+    <arg name="max_detections" default="200"/>
     <arg name="config_file_path" default="/tmp/tag_bundle_calibration.yaml"/>
     <arg name="tag_bundle_name" default="tag_bundle"/>
     <arg name="master_tag_id" default="4"/>

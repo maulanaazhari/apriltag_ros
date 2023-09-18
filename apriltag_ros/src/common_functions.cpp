@@ -226,7 +226,7 @@ AprilTagDetectionArray TagDetector::detectTags (
   image_geometry::PinholeCameraModel camera_model;
   camera_model.fromCameraInfo(camera_info);
   // cv::Mat rect;
-  camera_model.rectifyImage(gray_image, gray_image, 1);
+  // camera_model.rectifyImage(gray_image, gray_image, 1);
 
 
   image_u8_t apriltag_image = { .width = gray_image.cols,
@@ -276,6 +276,8 @@ AprilTagDetectionArray TagDetector::detectTags (
   tag_detection_array.header = image->header;
   std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
   std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
+
+  // ROS_INFO_STREAM("num detections : "<<zarray_size(detections_));
   for (int i=0; i < zarray_size(detections_); i++)
   {
     // Get the i-th detected tag

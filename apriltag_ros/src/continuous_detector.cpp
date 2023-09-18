@@ -94,13 +94,13 @@ void ContinuousDetector::imageCallback (
   // Lazy updates:
   // When there are no subscribers _and_ when tf is not published,
   // skip detection.
-  if (tag_detections_publisher_.getNumSubscribers() == 0 &&
-      tag_detections_image_publisher_.getNumSubscribers() == 0 &&
-      !tag_detector_->get_publish_tf())
-  {
-    // ROS_INFO_STREAM("No subscribers and no tf publishing, skip processing.");
-    return;
-  }
+  // if (tag_detections_publisher_.getNumSubscribers() == 0 &&
+  //     tag_detections_image_publisher_.getNumSubscribers() == 0 &&
+  //     !tag_detector_->get_publish_tf())
+  // {
+  //   // ROS_INFO_STREAM("No subscribers and no tf publishing, skip processing.");
+  //   return;
+  // }
 
   // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
   // AprilTag 2 on the iamge
@@ -115,8 +115,14 @@ void ContinuousDetector::imageCallback (
   }
 
   // Publish detected tags in the image by AprilTag 2
-  tag_detections_publisher_.publish(
-      tag_detector_->detectTags(cv_image_,camera_info));
+  auto start = std::chrono::system_clock::now();
+  auto detections = tag_detector_->detectTags(cv_image_,camera_info);
+  if(detections.detections.size() > 0){
+    tag_detections_publisher_.publish(detections);
+  }
+  auto end = std::chrono::system_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  ROS_INFO_STREAM("detection "<<elapsed.count() << " ms");
 
   // Publish the camera image overlaid by outlines of the detected tags and
   // their payload values
