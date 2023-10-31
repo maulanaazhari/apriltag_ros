@@ -1,9 +1,28 @@
 <launch>    
     <arg name="tag_detection_topic" default="/tag_detections"/>
-    <arg name="max_detections" default="500"/>
+    <arg name="max_detections" default="200"/>
     <arg name="config_file_path" default="/tmp/tag_bundle_calibration.yaml"/>
-    <arg name="tag_bundle_name" default="tag_bundle"/>
-    <arg name="master_tag_id" default="4"/>
+    <arg name="tag_bundle_name" default="robot"/>
+    <arg name="master_tag_id" default="73"/>
+
+    <!-- configure camera input -->
+    <arg name="camera_name" default="/zed2i/zed_node/rgb/" />
+    <arg name="image_topic" default="image_rect_color" />
+    <arg name="queue_size" default="1" />
+
+    <!-- apriltag_ros continuous detection node -->
+    <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="apriltag_ros_continuous_node" clear_params="true" output="screen">
+        <!-- Remap topics from those used in code to those on the ROS network -->
+        <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)" />
+        <remap from="camera_info" to="$(arg camera_name)/camera_info" />
+
+        <param name="publish_tag_detections_image" type="bool" value="true" /><!-- default: false -->
+        <param name="queue_size" type="int" value="$(arg queue_size)" />
+
+        <!-- load parameters (incl. tag family, tags, etc.) -->
+        <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml"/>
+        <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml"/>
+    </node>
 
     <node pkg="apriltag_ros" type="apriltag_ros_tag_bundle_calibration_node" name="apriltag_ros_tag_bundle_calibration_node" output="screen">
         <remap from="~tag_detections" to="$(arg tag_detection_topic)"/>
